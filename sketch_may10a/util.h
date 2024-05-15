@@ -143,8 +143,8 @@ private:
  */
 class TransferFunctionOrderTwo {
 private:
-    CircularBuffer<float, 2> _prevOutputs; /**< Circular buffer for storing previous outputs */
-    CircularBuffer<float, 1> _prevInputs; /**< Circular buffer for storing previous inputs */
+    QueueBuffer<float, 2> _prevOutputs; /**< Circular buffer for storing previous outputs */
+    QueueBuffer<float, 1> _prevInputs; /**< Circular buffer for storing previous inputs */
     float _num0; /**< Numerator coefficient 0 */
     float _den0; /**< Denominator coefficient 0 */
     float _den1; /**< Numerator coefficient 1 */

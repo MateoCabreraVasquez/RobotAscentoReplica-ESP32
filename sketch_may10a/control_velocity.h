@@ -29,9 +29,6 @@ private:
     ZeroOrderHolder _zeroOrderHolderRigth; /**< Zero order holder for right wheel */
     ZeroOrderHolder _zeroOrderHolderLeft; /**< Zero order holder for left wheel */
 
-    // TRANSFER FUNCTION
-    TransferFunctionOrderTwo _tranferFunRigth; /**< Transfer function for right wheel */
-    TransferFunctionOrderTwo _tranferFunLeft; /**< Transfer function for left wheel */
 
     // ***************** FUNCTIONS *****************
 
@@ -70,32 +67,6 @@ private:
     }
 
 
-    /**
-     * @brief Apply zero-order hold.
-     * 
-     * @param value The input value.
-     * @return The output value after applying zero-order hold.
-     */
-    float _zeroOderHold(float value){
-        return value;
-    }
-
-
-    /**
-     * @brief Apply a transfer function.
-     * 
-     * @param value The input value.
-     * @param num Numerator coefficient.
-     * @param den1 Denominator coefficient 1.
-     * @param den2 Denominator coefficient 2.
-     * @return The output value after applying the transfer function.
-     */
-    float _transferFunction(float value, float num, float den1, float den2){
-        return value;
-    }
-
-
-
 
 public:
     // RIGHT
@@ -113,11 +84,7 @@ public:
 
         float resZeroOrderHold = _zeroOrderHolderRigth.Compute(resatured1);
 
-        float resTransferFunction = _transferFunction(resZeroOrderHold, 1, 1, 1);
-
-        float resSatured2 = _saturator.compute(resTransferFunction, -11, 11);
-
-        return resSatured2;
+        return resZeroOrderHold;
     }
 
     // LEFT
@@ -135,11 +102,7 @@ public:
 
         float resZeroOrderHold = _zeroOrderHolderLeft.Compute(resatured1);
 
-        float resTransferFunction = _transferFunction(resZeroOrderHold, 1, 1, 1);
-
-        float resSatured2 = _saturator.compute(resTransferFunction, -11, 11);
-
-        return resSatured2;
+        return resZeroOrderHold;
     }
     
 };

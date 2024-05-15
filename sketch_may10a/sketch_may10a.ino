@@ -30,7 +30,6 @@ void loop(){
   Serial.print(imu_manager.getAccelY());
   Serial.print(",");
   Serial.println(imu_manager.getAccelZ());
-
   }
 
 }

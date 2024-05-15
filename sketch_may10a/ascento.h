@@ -25,7 +25,6 @@ private:
     ImuManager _imuManager;
 
     // manager
-    MotorsManager _motorsManager;
     
     void _updatePositionParameters(){
         // COMPLEE ******************************
@@ -51,9 +50,7 @@ public:
        float wRight= _controlVelocity.computeRigth(angularVelocities[0]);
        float wLeft = _controlVelocity.computeLeft(angularVelocities[1]);
 
-        // set the new velocities
-        _motorsManager.setSpeedMotorRight(wRight);
-        _motorsManager.setSpeedMotorLeft(wLeft);
+     
 
     }
 
@@ -64,5 +61,6 @@ public:
 
 };
 #endif
+
 
 
