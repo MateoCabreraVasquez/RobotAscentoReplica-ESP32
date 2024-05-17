@@ -76,7 +76,7 @@ public:
      * @param value The input value.
      * @return The control output for the right wheel.
      */
-    float computeRigth(float value){
+    long int computeRigth(float value){
 
         float res = _pidRight(value);
 
@@ -84,7 +84,7 @@ public:
 
         float resZeroOrderHold = _zeroOrderHolderRigth.Compute(resatured1);
 
-        return resZeroOrderHold;
+        return (long) resZeroOrderHold;
     }
 
     // LEFT

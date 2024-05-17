@@ -12,35 +12,80 @@
 
 ImuManager imu_manager;
 QueueBuffer<float, 3> buffer;
-ControlVelocity c;
 ascento A;
+ControlVelocity controlVelocity;
+
+  // wheels
+  Motor motoRigth = Motor(
+      32,   // pinPulseA
+      33,   // pinPulseB
+      2,    // modulePWMPin
+      5,    // modulePWMPinNeg
+      0,    // pwmChannel0
+      1,    // pwmChannel1
+      6538, // R,
+      0.075     // radioWheel
+  );
+
 //ControlTrajectory a(11.0,11.0,11.0,11.0);
 
 void setup(){
   Serial.begin(115200);
-  imu_manager.begin();
-  imu_manager.calibrate();
+  // imu_manager.begin();
+  // imu_manager.calibrate();
+  motoRigth.begin();
+  motoRigth.setVelocity(50);
+  
 
- 
+}
+long int duty=0;
+void loop(){
+
+if (Serial.available() > 0) {
+  long number = (float)readLongFromSerial();
+  Serial.println(number);
+  float w = controlVelocity.computeRigth(number);
+  motoRigth.setVelocity(w);
+  Serial.println(w);
+
 }
 
-void loop(){
-  imu_manager.update();
-  if(!imu_manager.isWorking()){
-  // Serial.print(imu_manager.getAccelX());
-  // Serial.print(",");
-  // Serial.print(imu_manager.getAccelY());
-  // Serial.print(",");
-  // Serial.println(imu_manager.getAccelZ());
+  
+  motoRigth.motorRun();
 
-  //Serial.println(imu_manager.getVelX());
-  //Serial.print(imu_manager.getPitch());
-  Serial.print(", ");
-  Serial.println(imu_manager.getAccelX()); 
-  Serial.println(imu_manager.getVelX());
-  delay(200);
+  // imu_manager.update();
+  // if(!imu_manager.isWorking()){
+  // // Serial.print(imu_manager.getAccelX());
+  // // Serial.print(",");
+  // // Serial.print(imu_manager.getAccelY());
+  // // Serial.print(",");
+  // // Serial.println(imu_manager.getAccelZ());
+
+  // //Serial.println(imu_manager.getVelX());
+  // //Serial.print(imu_manager.getPitch());
+  // Serial.print(", ");
+  // Serial.println(imu_manager.getAccelX()); 
+  // Serial.println(imu_manager.getVelX());
+  // delay(200);
   }
 
+long readLongFromSerial() {
+  while (Serial.available() == 0) {
+    // Wait for input
+  }
+
+  String inputString = "";
+  while (Serial.available() > 0) {
+    char incomingByte = Serial.read();
+    if (incomingByte == '\n' || incomingByte == '\r') {
+      // End of input
+      break;
+    }
+    inputString += incomingByte;
+  }
+
+  long value = inputString.toInt();
+  return value;
 }
 
 

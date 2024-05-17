@@ -50,7 +50,7 @@ private:
     // **************************************************************
 
 public:
-    const long _INTERVAL_ENCODER_ANGLE = 50; /**< Interval for encoder angle */
+    const unsigned long _INTERVAL_ENCODER_ANGLE = 50; /**< Interval for encoder angle */
     const int _RESOLUTION = 8; /**< PWM resolution */
     const int _FREQUENCY = 21000; /**< PWM frequency */
 
@@ -118,6 +118,9 @@ public:
 int Motor::_pinApulse = 0;
 int Motor::_pinBpulse = 0;
 volatile byte Motor::_previousAB = 0; 
+volatile byte Motor::_actualAB = 0; 
+int Motor::_n=0;
+
 
 Motor::Motor(int pinPulseA, int pinPulseB, int modulePWMPin, int modulePWMPinNeg, int pwmChannel0, int pwmChannel1, float R, float radioWheel) {
     _pinApulse = pinPulseA;
@@ -126,13 +129,15 @@ Motor::Motor(int pinPulseA, int pinPulseB, int modulePWMPin, int modulePWMPinNeg
     _modulePWMPinNeg = modulePWMPinNeg;
     _R = R;
     _radioWheel = radioWheel;
+    _pwmChannel0=pwmChannel0;
+    _pwmChannel1=pwmChannel1;
 }
 
 // **************************************************************
 //                     MANGER MOTOR  FUNCTIONS
 // **************************************************************
 
-void Motor::setVelocity(int  duty) {duty = duty;}
+void Motor::setVelocity(int  duty) {_duty = duty;}
 
 float Motor::getLinealVelocity() {return _velocityAngular*_radioWheel;}
 
@@ -165,6 +170,7 @@ void Motor::begin() {
 
 void Motor::motorRun(){
 unsigned long currentMillisEncoderAngle = millis();  
+    //Serial.println("1");
   if (currentMillisEncoderAngle - _previousMillisEncoderAngle >= _INTERVAL_ENCODER_ANGLE) {
 
     float delta = (currentMillisEncoderAngle - _previousMillisEncoderAngle) / 1000.f;
@@ -191,6 +197,7 @@ unsigned long currentMillisEncoderAngle = millis();
 // **************************************************************
 
 void Motor::pulseinterrupt() {
+       
         _previousAB = _actualAB;
         if (digitalRead(_pinApulse))
             bitSet(_actualAB, 1);
