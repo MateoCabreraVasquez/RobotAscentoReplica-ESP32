@@ -3,6 +3,8 @@
 #include "imu_manager.h"
 #include <array>
 #include "motor.h"
+#include "differential_follower_model.h"
+
 #ifndef ASCENTO_H
 #define ASCENTO_H
 class ascento
@@ -51,6 +53,12 @@ private:
         3,    // pwmChannel1
         4451, // R,
         R     // radioWheel
+    );
+
+    // differential model
+    DifferentialFollowerModel _differentialFollowerModel = DifferentialFollowerModel(
+        L, // L
+        R  // R
     );
 
 
