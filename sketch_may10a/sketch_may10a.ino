@@ -7,12 +7,14 @@
 #include "control_velocity.h"
 #include "control_trajectory.h"
 #include "ascento.h"
+#include "motor.h"
 
 
 ImuManager imu_manager;
 QueueBuffer<float, 3> buffer;
 ControlVelocity c;
-ControlTrajectory a(11.0,11.0,11.0,11.0);
+ascento A;
+//ControlTrajectory a(11.0,11.0,11.0,11.0);
 
 void setup(){
   Serial.begin(115200);
@@ -25,11 +27,18 @@ void setup(){
 void loop(){
   imu_manager.update();
   if(!imu_manager.isWorking()){
-  Serial.print(imu_manager.getAccelX());
-  Serial.print(",");
-  Serial.print(imu_manager.getAccelY());
-  Serial.print(",");
-  Serial.println(imu_manager.getAccelZ());
+  // Serial.print(imu_manager.getAccelX());
+  // Serial.print(",");
+  // Serial.print(imu_manager.getAccelY());
+  // Serial.print(",");
+  // Serial.println(imu_manager.getAccelZ());
+
+  //Serial.println(imu_manager.getVelX());
+  //Serial.print(imu_manager.getPitch());
+  Serial.print(", ");
+  Serial.println(imu_manager.getAccelX()); 
+  Serial.println(imu_manager.getVelX());
+  delay(200);
   }
 
 }

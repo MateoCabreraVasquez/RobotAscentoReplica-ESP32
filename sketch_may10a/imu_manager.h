@@ -10,9 +10,11 @@
 class ImuManager{
 
 private:
-
     bool _isWorking = false;
     MPU9250 _mpu; /**< MPU9250 object for IMU communication */
+
+    float _G = 9.7808; /**< Gravety constant */
+    float _dt = 0; 
 
     float _pitch = 0.0; /**< Pitch angle */
     float _roll = 0.0; /**< Roll angle */
@@ -25,6 +27,9 @@ private:
     float _linAccelX = 0.0; /**< Linear acceleration X */
     float _linAccelY = 0.0; /**< Linear acceleration Y */
     float _linAccelZ = 0.0; /**< Linear acceleration Z */
+
+    float _linAccelPrevX = 0.0; /**< Linear acceleration X */
+    float _linAccelPrevY = 0.0; /**< Linear acceleration Y */
 
     // offsets
     const float _pitchOffset = 0.0; /**< Pitch offset */
@@ -39,26 +44,19 @@ private:
     const float _linAccelYOffset = 0.0; /**< Linear acceleration Y offset */
     const float _linAccelZOffset = 0.0; /**< Linear acceleration Z offset */
 
-    const  float _accelBounds = 0.4/9.8; /**< Acceleration bounds 0.4ms */
-    const  float _angleBounds = 4; /**< Angle bounds 4 degrees*/
+    const float _accelBounds = 0.4/9.8; /**< Acceleration bounds 0.4ms */
+    const float _angleBounds = 4; /*< Angle bounds 4 degrees/
 
-    
     // linear velocity and position
     float _dt = 0.0; /**< Time step */
-
-
-    float _preLinAccelX = 0.0; /**< Linear acceleration X */
-    float _preLinAccelY = 0.0; /**< Linear acceleration Y */
-
-    float _preVelX = 0.0; /**< Linear velocity X */
-    float _preVely = 0.0; /**< Linear velocity X */
-
 
     float _velX = 0.0; /**< Linear velocity X */
     float _velY = 0.0; /**< Linear velocity Y */
 
     float _posX = 0.0; /**< Linear position X */
     float _posY = 0.0; /**< Linear position Y */
+
+    uint32_t _prevUpdateTime = 0; /**< Previous update time in milliseconds */
 
 public:
     /**
@@ -74,10 +72,9 @@ public:
                 delay(5000);
             }
         }
+        _prevUpdateTime = millis();  // Initialize previous update time
     }
 
-
-    
     /**
      * @brief Update IMU data.
      * 
@@ -86,113 +83,111 @@ public:
      * @note This function should be called periodically to update the IMU data.
      */
     void update(){
-        _isWorking=true;
+        _isWorking = true;
         if (_mpu.update()) {
+            uint32_t currentTime = millis();
+            _dt = (currentTime - _prevUpdateTime) / 1000.0;  // Convert to seconds
+            _prevUpdateTime = currentTime;
 
-            static uint32_t prev_ms = millis();
-            if (millis() > prev_ms + 25) {
-                prev_ms = millis();
+            // this->_linAccelX = _mpu.getAccX();
+            // this->_linAccelY = _mpu.getAccY();
+            // this->_linAccelZ = _mpu.getAccZ();
+            _linAccelPrevX =_linAccelX;
+            _linAccelPrevY =_linAccelX;
+            
+            // get angles
+            float pitch = _mpu.getPitch()*PI/180;
+            float roll = _mpu.getRoll()*PI/180;
+            float yaw = _mpu.getYaw()*PI/180;
 
-                // this->_linAccelX = _mpu.getAccX();
-                // this->_linAccelY = _mpu.getAccY();
-                // this->_linAccelZ = _mpu.getAccZ();
+            // get linear acceleration
+            float accMpuX = _G*_mpu.getAccX();
+            float accMpuY = _G*_mpu.getAccY();
+            float accMpuZ = _G*_mpu.getAccZ();
 
-                // get linear acceleration
-                float accMpuX = _mpu.getAccX();
-                float accMpuY = _mpu.getAccY();
-                float accMpuZ = _mpu.getAccZ();
+            Serial.println(accMpuX);
+            accMpuX = (-_G*cos(PI/2-_pitch) + accMpuX)*cos(pitch);
+            accMpuY = (-_G*cos(PI/2-_roll) + accMpuY)*cos(roll);
+            accMpuZ = _G*_mpu.getAccZ();
+        
 
-                Serial.println(accMpuX);
-                Serial.println(abs(accMpuX - _linAccelX));
+            // get euler angles
+            float eulerX = _mpu.getEulerX();
+            float eulerY = _mpu.getEulerY();
+            float eulerZ = _mpu.getEulerZ();
 
+            // aceleration
+            if (abs(accMpuX - _linAccelX) > _accelBounds)
+                _linAccelX = accMpuX;  
 
-                // get angles
-                float pitch = _mpu.getPitch();
-                float roll = _mpu.getRoll();
-                float yaw = _mpu.getYaw();
+            if (abs(accMpuY - _linAccelY) > _accelBounds)
+                _linAccelY = accMpuY;
 
-                // get euler angles
-                float eulerX = _mpu.getEulerX();
-                float eulerY = _mpu.getEulerY();
-                float eulerZ = _mpu.getEulerZ();
+            if (abs(accMpuZ - _linAccelZ) > _accelBounds)
+                _linAccelZ = accMpuZ;
 
-                // aceleration
-                if (abs(accMpuX - _linAccelX) > _accelBounds)
-                    this->_linAccelX = accMpuX;	 
+            // pitch roll yaw
+            if (abs(pitch - _pitch) > _angleBounds)
+                _pitch = pitch;
 
-                if (abs(accMpuY - _linAccelY) > _accelBounds)
-                    this->_linAccelY = accMpuY;
+            if (abs(roll - _roll) > _angleBounds)
+                _roll = roll;
 
-                if (abs(accMpuZ - _linAccelZ) > _accelBounds)
-                    this->_linAccelZ = accMpuZ;
+            if (abs(yaw - _yaw) > _angleBounds)
+                _yaw = yaw;
 
-                // pitch roll yaw
-                if (abs(pitch - _pitch) > _angleBounds)
-                    this->_pitch = pitch;
+            // euler angles
+            if (abs(eulerX - _eulerX) > _angleBounds)
+                _eulerX = eulerX;
 
-                if (abs(roll - _roll) > _angleBounds)
-                    this->_roll = roll;
+            if (abs(eulerY - _eulerY) > _angleBounds)
+                _eulerY = eulerY;
 
-                if (abs(yaw - _yaw) > _angleBounds)
-                    this->_yaw = yaw;
+            if (abs(eulerZ - _eulerZ) > _angleBounds)
+                _eulerZ = eulerZ;
 
-                // euler angles
-                if (abs(eulerX - _eulerX) > _angleBounds)
-                    this->_eulerX = eulerX;
+            // Update linear velocity and position
+            updateLinearVelAndPos();
 
-                if (abs(eulerY - _eulerY) > _angleBounds)
-                    this->_eulerY = eulerY;
-
-                if (abs(eulerZ - _eulerZ) > _angleBounds)
-                    this->_eulerZ = eulerZ;
-
-                _isWorking=false;
-
-            }
+            _isWorking = false;
         }
     }
 
     bool isWorking(){
-      return _isWorking;
+        return _isWorking;
     }
 
+    /**
+     * @brief Update linear velocity and position based on current acceleration.
+     */
     void updateLinearVelAndPos(){
-        //_dt = (float)(millis() - prev_ms) * 0.001 - _dt;
-        
-        this->_velX += this->_linAccelX * _dt;
-        this->_velY += this->_linAccelY * _dt;
+        _velX += (_linAccelX)* _dt;
+        _velY += (_linAccelY-_linAccelPrevY) * _dt;
 
-        this->_posX += this->_velX * _dt;
-        this->_posY += this->_velY * _dt;
-
-
+        _posX += _velX * _dt;
+        _posY += _velY * _dt;
     }
-
 
     /**
      * @brief Calibrates the MPU9250 sensor.
      */
     void calibrate(){
-      Serial.println("Calib. will start in 5sec.");
-      Serial.println("Leave the device on a flat plane.");
-      _mpu.verbose(true);
-      delay(5000);
-      _mpu.calibrateAccelGyro();
-      _mpu.verbose(false);
+        Serial.println("Calib. will start in 5sec.");
+        Serial.println("Leave the device on a flat plane.");
+        _mpu.verbose(true);
+        delay(5000);
+        _mpu.calibrateAccelGyro();
+        _mpu.verbose(false);
     }
 
-
-    
-
-
-    // *********** PITCH ROLL YAW *********** //
+    // **** PITCH ROLL YAW **** //
 
     /**
      * @brief Get pitch angle from MPU9250 sensor.
      * @return Pitch angle.
      */
     float getPitch(){
-        return this->_pitch + this->_pitchOffset;
+        return _pitch + _pitchOffset;
     }
 
     /**
@@ -200,7 +195,7 @@ public:
      * @return Roll angle.
      */
     float getRoll(){
-        return this->_roll + this->_rollOffset;
+        return _roll + _rollOffset;
     }
 
     /**
@@ -208,20 +203,17 @@ public:
      * @return Yaw angle.
      */
     float getYaw(){
-        return this->_yaw + this->_yawOffset;
+        return _yaw + _yawOffset;
     }
 
-
-
-
-    // ************* EULER ANGLES ************* //
+    // ***** EULER ANGLES ***** //
 
     /**
      * @brief Get Euler X angle from MPU9250 sensor.
      * @return Euler X angle.
      */
     float getEulerX(){
-        return this->_eulerX + this->_eulerXOffset;
+        return _eulerX + _eulerXOffset;
     }
 
     /**
@@ -229,7 +221,7 @@ public:
      * @return Euler Y angle.
      */
     float getEulerY(){
-        return this->_eulerY + this->_eulerYOffset;
+        return _eulerY + _eulerYOffset;
     }
 
     /**
@@ -237,45 +229,68 @@ public:
      * @return Euler Z angle.
      */
     float getEulerZ(){
-        return  this->_eulerZ + this->_eulerZOffset;
+        return _eulerZ + _eulerZOffset;
     }
 
-
-
-
-    // ************* LINEAR ACELERATION************* //
+    // ***** LINEAR ACCELERATION ***** //
 
     /**
-     * @brief Get Linear acceleration along X-axis from MPU9250 sensor.
+     * @brief Get linear acceleration along X-axis from MPU9250 sensor.
      * @return Linear acceleration along X-axis.
      */
     float getAccelX(){
-        return  this->_linAccelX*9.7808 + this->_linAccelXOffset;
+        return _linAccelX + _linAccelXOffset;
     }
 
     /**
-     * @brief Get Linear acceleration along Y-axis from MPU9250 sensor.
+     * @brief Get linear acceleration along Y-axis from MPU9250 sensor.
      * @return Linear acceleration along Y-axis.
      */
     float getAccelY(){
-        return  this->_linAccelY*9.7808 + this->_linAccelYOffset;
+        return _linAccelY + _linAccelYOffset;
     }
 
     /**
-     * @brief Get Linear acceleration along Z-axis from MPU9250 sensor.
+     * @brief Get linear acceleration along Z-axis from MPU9250 sensor.
      * @return Linear acceleration along Z-axis.
      */
     float getAccelZ(){
-        return  this->_linAccelZ*9.7808 + this->_linAccelZOffset;
+        return _linAccelZ  + _linAccelZOffset;
     }
 
+    /**
+     * @brief Get linear velocity along X-axis.
+     * @return Linear velocity along X-axis.
+     */
+    float getVelX(){
+        return _velX;
+    }
 
+    /**
+     * @brief Get linear velocity along Y-axis.
+     * @return Linear velocity along Y-axis.
+     */
+    float getVelY(){
+        return _velY;
+    }
 
+    /**
+     * @brief Get linear position along X-axis.
+     * @return Linear position along X-axis.
+     */
+    float getPosX(){
+        return _posX;
+    }
 
+    /**
+     * @brief Get linear position along Y-axis.
+     * @return Linear position along Y-axis.
+     */
+    float getPosY(){
+        return _posY;
+    }
 };
+
 #endif
-
-
-
 
 

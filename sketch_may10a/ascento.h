@@ -2,12 +2,12 @@
 #include "control_velocity.h"
 #include "imu_manager.h"
 #include <array>
-#include "motors_manager.h"
+#include "motor.h"
 #ifndef ASCENTO_H
 #define ASCENTO_H
-class ascento{
+class ascento
+{
 private:
-    
     // parameters
     const float R = 0.016;
     const float L = 0.024;
@@ -18,11 +18,42 @@ private:
     const float _phiReal = 0.0;
 
     // control
-    ControlTrajectory _controlTrajectory = ControlTrajectory(R, L, _wMaxRigtht, _wMaxLeft);
+    ControlTrajectory _controlTrajectory = ControlTrajectory(
+        R,            //R
+        L,            //L
+        _wMaxRigtht,  //wMaxRigtht,
+         _wMaxLeft    //wMaxLeft
+        );
+
     ControlVelocity _controlVelocity;
 
     // imu
     ImuManager _imuManager;
+
+    // wheels
+    Motor motoRigth = Motor(
+        32,   // pinPulseA
+        33,   // pinPulseB
+        2,    // modulePWMPin
+        5,    // modulePWMPinNeg
+        0,    // pwmChannel0
+        1,    // pwmChannel1
+        6538, // R,
+        R     // radioWheel
+    );
+
+      Motor motorLeft = Motor(
+        25,   // pinPulseA
+        26,   // pinPulseB
+        15,   // modulePWMPin
+        18,   // modulePWMPinNeg
+        2,    // pwmChannel0
+        3,    // pwmChannel1
+        4451, // R,
+        R     // radioWheel
+    );
+
+
 
     // manager
     
@@ -34,21 +65,17 @@ private:
     
 
 public:
-    ascento(/* args */);
-    ~ascento();
-
 
     void runGoToGoal(float xTarget, float yTarget){
-
         // set the new positions
         _updatePositionParameters();
-         
+
         // compute the go to goal velocities
-        std::array<float, 2> angularVelocities = _controlTrajectory.compute(xTarget, yTarget, this->_xReal,  this->_yReal,  this->_phiReal);
+        std::array<float, 2> angularVelocities = _controlTrajectory.compute(xTarget, yTarget, this->_xReal, this->_yReal, this->_phiReal);
 
         // compute right and left velocities control
-       float wRight= _controlVelocity.computeRigth(angularVelocities[0]);
-       float wLeft = _controlVelocity.computeLeft(angularVelocities[1]);
+        float wRight = _controlVelocity.computeRigth(angularVelocities[0]);
+        float wLeft = _controlVelocity.computeLeft(angularVelocities[1]);
 
      
 
@@ -57,10 +84,5 @@ public:
     void runControlEquilibrium (){
 
     }
-
-
 };
 #endif
-
-
-
