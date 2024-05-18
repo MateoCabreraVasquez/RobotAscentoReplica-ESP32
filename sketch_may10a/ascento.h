@@ -82,8 +82,8 @@ public:
         std::array<float, 2> angularVelocities = _controlTrajectory.compute(xTarget, yTarget, this->_xReal, this->_yReal, this->_phiReal);
 
         // compute right and left velocities control
-        float wRight = _controlVelocity.computeRigth(angularVelocities[0]);
-        float wLeft = _controlVelocity.computeLeft(angularVelocities[1]);
+        // float wRight = _controlVelocity.computeRigth(angularVelocities[0]);
+        // float wLeft = _controlVelocity.computeLeft(angularVelocities[1]);
 
      
 

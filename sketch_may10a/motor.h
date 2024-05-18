@@ -50,7 +50,7 @@ private:
     // **************************************************************
 
 public:
-    const unsigned long _INTERVAL_ENCODER_ANGLE = 50; /**< Interval for encoder angle */
+    const unsigned long _INTERVAL_ENCODER_ANGLE = 50000; /**< Interval for encoder angle */
     const int _RESOLUTION = 8; /**< PWM resolution */
     const int _FREQUENCY = 21000; /**< PWM frequency */
 
@@ -169,17 +169,17 @@ void Motor::begin() {
 // **************************************************************
 
 void Motor::motorRun(){
-unsigned long currentMillisEncoderAngle = millis();  
+unsigned long currentMillisEncoderAngle = micros();  
     //Serial.println("1");
   if (currentMillisEncoderAngle - _previousMillisEncoderAngle >= _INTERVAL_ENCODER_ANGLE) {
 
-    float delta = (currentMillisEncoderAngle - _previousMillisEncoderAngle) / 1000.f;
+    float delta = (currentMillisEncoderAngle - _previousMillisEncoderAngle) / 1000000.f;
     
     // encoder lecures
     _previousMillisEncoderAngle = currentMillisEncoderAngle;
-    _posAngularPrev = _velocityAngular;
-    _velocityAngular = (_n * 360.0) / _R;
-    _velocityAngular = (3.14159 / 180.f) * (_velocityAngular - _posAngularPrev) / delta;
+    _posAngularPrev = _posAngular;
+    _posAngular = (_n * 360.0) / _R;
+    _velocityAngular = (3.14159 / 180.f) * (_posAngular - _posAngularPrev) / delta;
 
     // direction of movement
     if (_duty < 0) { 

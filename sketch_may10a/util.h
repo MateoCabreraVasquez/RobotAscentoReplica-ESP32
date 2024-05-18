@@ -78,9 +78,14 @@ class ZeroOrderHolder
 private:
     float _lastValue = 0.0; /**< Last stored value */
     float _lastTime = 0.0; /**< Last time value */
-    const float _period = 1; /**< Sampling period (1 ms by default) */
+    float _period = 1000; /**< Sampling period (1 ms by default) */
 
 public:
+
+    float setPeriod(float period){
+      _period=period;
+    }
+
     /**
      * @brief Compute the output of the zero-order holder.
      * 
@@ -89,9 +94,9 @@ public:
      */
     float Compute(float newValue){
         // Check if the sampling period has elapsed
-        if (_lastTime + _period <=  millis()){
+        if (_lastTime + _period <=  micros()){
             _lastValue = newValue; // Update the last value
-            _lastTime = millis(); // Update the last time
+            _lastTime = micros(); // Update the last time
         }
         
         return _lastValue; // Return the last stored value

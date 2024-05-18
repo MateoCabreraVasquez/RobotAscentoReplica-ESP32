@@ -43,8 +43,7 @@ private:
         _pidRighEntries.insert(value);
         std::array<float, 3> u =_pidRighEntries.toArray();
         std::array<float, 2> Y =_pdiRightOutputs.toArray();
-
-        float y = 15.99 * u[0] - 6.576 * u[1] - 7.715 * u[2] + 0.9847 * Y[0] + 0.01531 * Y[1];
+        float y = 15.48 * u[0] - 30.19 * u[1] - 14.72 * u[2] + 1.96 * Y[0] -0.96 * Y[1];
         _pdiRightOutputs.insert(y);
         return y;
     }
@@ -61,7 +60,7 @@ private:
         _pidLeftEntries.insert(value);
         std::array<float, 3> u =_pidLeftEntries.toArray();
         std::array<float, 2> Y =_pdiLeftOutputs.toArray();
-        float y = 13.28 * u[0] - 6.997 * u[1] - 4.867 * u[2] + 0.9404 * Y[0] + 0.05964 * Y[1];
+        float y = 10.21* u[0] -19.89 * u[1] + 9.687 * u[2] + 1.96 * Y[0] - 0.96 * Y[1];
         _pdiLeftOutputs.insert(y);
         return y;
     }
@@ -76,9 +75,9 @@ public:
      * @param value The input value.
      * @return The control output for the right wheel.
      */
-    long int computeRigth(float value){
+    long int computeRigth(float value, float velRea){
 
-        float res = _pidRight(value);
+        float res = _pidRight(value-velRea);
 
         float resatured1 = _saturator.compute(res, -100, 100);
 
@@ -94,9 +93,9 @@ public:
      * @param value The input value.
      * @return The control output for the left wheel.
      */
-    float computeLeft(float value){
+    float computeLeft(float value, float realVel){
 
-        float res = _pidLeft(value);
+        float res = _pidLeft(value-realVel);
 
         float resatured1 = _saturator.compute(res, -100, 100);
 

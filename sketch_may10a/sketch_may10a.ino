@@ -44,14 +44,18 @@ void loop(){
 if (Serial.available() > 0) {
   long number = (float)readLongFromSerial();
   Serial.println(number);
-  float w = controlVelocity.computeRigth(number);
-  motoRigth.setVelocity(w);
-  Serial.println(w);
+  float w = 8.;
 
+  float a=motoRigth.getAngularVelocity();
+  float v = controlVelocity.computeRigth(w,a);
+  motoRigth.setVelocity(v);
+  Serial.println(v);
+  //Serial.println(motoRigth.getAngularVelocity());
 }
 
   
   motoRigth.motorRun();
+  Serial.println(motoRigth.getAngularVelocity());
 
   // imu_manager.update();
   // if(!imu_manager.isWorking()){
