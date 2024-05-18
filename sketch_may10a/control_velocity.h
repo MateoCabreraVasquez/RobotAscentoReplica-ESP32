@@ -77,7 +77,11 @@ public:
      */
     long int computeRigth(float value, float velRea){
 
-        float res = _pidRight(value-velRea);
+        float error = value-velRea;
+
+        float res = _pidRight(error);
+
+        Serial.println(res);
 
         float resatured1 = _saturator.compute(res, -100, 100);
 

@@ -39,21 +39,20 @@ void setup(){
 
 }
 long int duty=0;
+float w = 8;
+
 void loop(){
 
 if (Serial.available() > 0) {
-  long number = (float)readLongFromSerial();
-  Serial.println(number);
-  float w = 8.;
+  int number = (int)readLongFromSerial();
+  w= (float) number;
 
-  float a=motoRigth.getAngularVelocity();
-  float v = controlVelocity.computeRigth(w,a);
-  motoRigth.setVelocity(v);
-  Serial.println(v);
+  //Serial.println(v);
   //Serial.println(motoRigth.getAngularVelocity());
 }
-
-  
+  float a=motoRigth.getAngularVelocity();
+  float v = controlVelocity.computeRigth(w,a);
+  motoRigth.setVelocity(a);
   motoRigth.motorRun();
   Serial.println(motoRigth.getAngularVelocity());
 
