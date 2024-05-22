@@ -31,10 +31,10 @@ ControlVelocity controlVelocity;
 
 void setup(){
   Serial.begin(115200);
-  // imu_manager.begin();
-  // imu_manager.calibrate();
-  motoRigth.begin();
-  motoRigth.setVelocity(50);
+  imu_manager.begin();
+  imu_manager.calibrate();
+  // motoRigth.begin();
+  // motoRigth.setVelocity(50);
   
 
 }
@@ -42,35 +42,29 @@ long int duty=0;
 float w = 8;
 
 void loop(){
+  imu_manager.update();
 
-if (Serial.available() > 0) {
-  int number = (int)readLongFromSerial();
-  w= (float) number;
+  if(!imu_manager.isWorking()){
+  //     Serial.println(imu_manager.getPitch);
+  Serial.print(imu_manager.getAccelX());
+   Serial.print(", ");
+  // Serial.print(imu_manager.getAccelY());
+  // Serial.print(",");
+  // Serial.println(imu_manager.getAccelZ());
 
-  //Serial.println(v);
-  //Serial.println(motoRigth.getAngularVelocity());
-}
-  float a=motoRigth.getAngularVelocity();
-  float v = controlVelocity.computeRigth(w,a);
-  motoRigth.setVelocity(a);
-  motoRigth.motorRun();
-  Serial.println(motoRigth.getAngularVelocity());
+  Serial.print(imu_manager.getVelX());
+  Serial.print(", ");
 
-  // imu_manager.update();
-  // if(!imu_manager.isWorking()){
-  // // Serial.print(imu_manager.getAccelX());
-  // // Serial.print(",");
-  // // Serial.print(imu_manager.getAccelY());
-  // // Serial.print(",");
-  // // Serial.println(imu_manager.getAccelZ());
+  Serial.println(imu_manager.getPosX());
 
-  // //Serial.println(imu_manager.getVelX());
-  // //Serial.print(imu_manager.getPitch());
+  // Serial.print(imu_manager.getAccelX());
   // Serial.print(", ");
+  // Serial.println(imu_manager.getPitch());
+
   // Serial.println(imu_manager.getAccelX()); 
   // Serial.println(imu_manager.getVelX());
-  // delay(200);
   }
+}
 
 long readLongFromSerial() {
   while (Serial.available() == 0) {

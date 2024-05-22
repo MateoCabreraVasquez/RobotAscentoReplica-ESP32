@@ -81,8 +81,6 @@ public:
 
         float res = _pidRight(error);
 
-        Serial.println(res);
-
         float resatured1 = _saturator.compute(res, -100, 100);
 
         float resZeroOrderHold = _zeroOrderHolderRigth.Compute(resatured1);

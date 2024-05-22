@@ -181,5 +181,21 @@ public:
     }
 };
 
+class ComplementaryFilter3{
+
+
+    private: 
+        const float alpha1 = 0.6;  // Weight for the first measure
+        const float alpha2 = 0.3;  // Weight for the second measure
+        const float alpha3 = 0.1;  // Weight for the third measure
+
+
+    public:
+        float compute(float measure1, float measure2, float measure3){
+            return alpha1 * measure1 + alpha2 * measure2 + alpha3 * measure3;
+        }
+
+};
+
 
 #endif
