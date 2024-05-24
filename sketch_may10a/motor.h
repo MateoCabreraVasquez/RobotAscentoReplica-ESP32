@@ -10,51 +10,56 @@
  */
 class Motor {
 
-// **************************************************************
-//                            PRIVATE 
-// **************************************************************
+  // **************************************************************
+  //                            PRIVATE
+  // **************************************************************
 private:
-    static int _pinApulse; /**< Pin for pulse A */
-    static int _pinBpulse; /**< Pin for pulse B */
 
-    int _modulePWMPin; /**< Module PWM pin */
-    int _modulePWMPinNeg; /**< Negative module PWM pin */
+  // class parameters
+  static int pinApulse;  //Digital pin, need interrupt for count rising flanks
+  static int pinBpulse;
+  float P;                   //Relative Position in grades
+  float R;                   //Resolution of Encoder for a quadrupel precision
 
-    double _R; /**< Gear ratio */
+  const long intervalEncoderAngle = 50;  //Delay for the Angle Data
+  unsigned long previousMillisEncoderAngle = 0;
 
-    int _pwmChannel0; /**< PWM channel 0 */
-    int _pwmChannel1; /**< PWM channel 1 */
-
-    float _velocityAngular = 0.0; /**< Velocity */
-    float _radioWheel = 0.0; /**< Radio wheel */
-
-    // Inner parameters
-    unsigned long _previousMillisEncoderAngle = 0;
-    static int _n; /**< Store the pulse */
-
-    static volatile byte _actualAB; /**< Actual value of AB */
-    static volatile byte _previousAB; /**< Previous value of AB */
-
-    double _posAngular = 0; /**< Current angle position */
-    double _posAngularPrev = 0; /**< Previous angle position */
-
-    long int _duty = 0; /**< Duty cycle */
-
-    float pastError[2] = { 0, 0 }; /**< Array to store past errors */
-    float pastOutput[2] = { 0, 0 }; /**< Array to store past outputs */
+  static int n;                     //store the pulse
+  static volatile byte actualAB;    //Actual Value of AB
+  static volatile byte previousAB;  //previous Value of AB
 
 
+  float Pact = 0;            //Relative Position in grades
+  float Pant = 0;            //Relative Position in grades
+  const int resolution = 8;  // set PWM resolution
+  int frecuency = 21000;
+  int pwmChannel0;
+  int pwmChannel1;
+  int modulePWMPin;
+  int modulePWMPinNeg;
 
-    // **************************************************************
-    //                             PUBLIC 
-    // **************************************************************
+  float u0 = 0, u1 = 0, u2 = 0, y0 = 0, y1 = 0;
+
+  float pastError[2] = { 0, 0 };
+  float pastOutput[2] = { 0, 0 };
+
+
+
+  long int duty = 0;
+  float setPoint = 7;
+
+
+
+  // **************************************************************
+  //                             PUBLIC
+  // **************************************************************
 
 public:
-    const unsigned long _INTERVAL_ENCODER_ANGLE = 50000; /**< Interval for encoder angle */
-    const int _RESOLUTION = 8; /**< PWM resolution */
-    const int _FREQUENCY = 21000; /**< PWM frequency */
+  const unsigned long _INTERVAL_ENCODER_ANGLE = 50; /**< Interval for encoder angle */
+  const int _RESOLUTION = 8;                        /**< PWM resolution */
+  const int _FREQUENCY = 21000;                     /**< PWM frequency */
 
-    /**
+  /**
      * @brief Constructor for Motor class.
      * @param pinPulseA Pin for pulse A.
      * @param pinPulseB Pin for pulse B.
@@ -65,102 +70,128 @@ public:
      * @param R Gear ratio.
      * @param radioWheel wheel readio.
      */
-    Motor(int pinPulseA, int pinPulseB, int modulePWMPin, int modulePWMPinNeg, int pwmChannel0, int pwmChannel1, float R, float radioWheel);
+  Motor(int pinPulseA, int pinPulseB, int modulePWMPin, int modulePWMPinNeg, int pwmChannel0, int pwmChannel1, float _R, float _u0, float _u1, float _u2, float _y0, float _y1);
 
 
-    /**
+  /**
      * @brief Set the velocity.
      * @param duty The duty cycle.
-     */	
-    void setVelocity(int  duty);
+     */
+  void setVelocity(float velocity) {
+    setPoint = velocity;
+  }
 
-    /**
+  /**
      * @brief Get the velocity.
      * @return The velocity.
      */
-    float getLinealVelocity();
+  float getLinealVelocity();
 
-    /**
+  /**
      * @brief Get the angular velocity.
      * @return The angular velocity.
      */
-    float getAngularVelocity();
+  float getAngularVelocity();
 
-    /**
+  /**
      * @brief Get the angle position.
      * @return The angle position.
      */
-    float getAnglePos();
+  float getAnglePos();
 
-    /**
+  /**
      * @brief Get the lineal position.
      * @return The lineal position.
      */
-    float getLinealPos();
+  float getLinealPos();
 
-    /**
+  float setPidParameters(float u0, float u1, float u2, float y0, float y1);
+
+  /**
      * @brief Initialize the motor.
      */
-    void begin();
+  void begin();
 
-    /**
+  /**
      * @brief Run the motor controller.
      */
-    void motorRun();
+  void motorRun();
 
-    /**
+  /**
      * @brief Static ISR for pulse interruption.
      */
-    static void pulseinterrupt();
+  static void pulseinterrupt();
 };
 
 
-int Motor::_pinApulse = 0;
-int Motor::_pinBpulse = 0;
-volatile byte Motor::_previousAB = 0; 
-volatile byte Motor::_actualAB = 0; 
-int Motor::_n=0;
+// int Motor::_pinApulse = 0;
+// int Motor::_pinBpulse = 0;
+// volatile byte Motor::_previousAB = 0;
+// volatile byte Motor::_actualAB = 0;
+// volatile int Motor::_n = 0;
 
 
-Motor::Motor(int pinPulseA, int pinPulseB, int modulePWMPin, int modulePWMPinNeg, int pwmChannel0, int pwmChannel1, float R, float radioWheel) {
-    _pinApulse = pinPulseA;
-    _pinBpulse = pinPulseB;
-    _modulePWMPin = modulePWMPin;
-    _modulePWMPinNeg = modulePWMPinNeg;
-    _R = R;
-    _radioWheel = radioWheel;
-    _pwmChannel0=pwmChannel0;
-    _pwmChannel1=pwmChannel1;
+
+
+Motor::Motor(int _pinPulseA, int _pinPulseB, int _modulePWMPin, int _modulePWMPinNeg, int _pwmChannel0, int _pwmChannel1, float _R, float _u0, float _u1, float _u2, float _y0, float _y1) {
+  pinApulse = _pinPulseA;
+  pinBpulse = _pinPulseB;
+  modulePWMPin = _modulePWMPin;
+  modulePWMPinNeg = _modulePWMPinNeg;
+  R = _R;
+  pwmChannel0 = _pwmChannel0;
+  pwmChannel1 = _pwmChannel1;
+
+  u0 = _u0;
+  u1 = _u1;
+  u2 = _u2;
+  y0 = _y0;
+  y1 = _y1;
 }
 
 // **************************************************************
 //                     MANGER MOTOR  FUNCTIONS
 // **************************************************************
 
-void Motor::setVelocity(int  duty) {_duty = duty;}
 
-float Motor::getLinealVelocity() {return _velocityAngular*_radioWheel;}
 
-float Motor::getAngularVelocity() {return  _velocityAngular;}
 
-float Motor::getAnglePos() {return _velocityAngular;}
 
-float Motor::getLinealPos() {return _velocityAngular*_radioWheel;}
 
+float Motor::getLinealVelocity() {
+  return 0.1;
+}
+
+float Motor::getAngularVelocity() {
+  return 0.1;
+}
+
+float Motor::getAnglePos() {
+  return 0.1;
+}
+
+float Motor::getLinealPos() {
+  return 0.1;
+}
+
+float Motor::setPidParameters(float u0, float u1, float u2, float y0, float y1) {
+}
 
 // **************************************************************
 //                          SETUP MOTOR
 // **************************************************************
 
 void Motor::begin() {
-    pinMode(_pinApulse, INPUT);
-    pinMode(_pinBpulse, INPUT);
-    attachInterrupt(digitalPinToInterrupt(_pinApulse), pulseinterrupt, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(_pinBpulse), pulseinterrupt, CHANGE);
-    ledcSetup(_pwmChannel0, _FREQUENCY, _RESOLUTION);                              
-    ledcSetup(_pwmChannel1, _FREQUENCY, _RESOLUTION);   
-    ledcAttachPin(_modulePWMPin, _pwmChannel0);
-    ledcAttachPin(_modulePWMPinNeg, _pwmChannel1);
+  //Encoder
+  pinMode(pinApulse, INPUT);
+  pinMode(pinBpulse, INPUT);
+  attachInterrupt(digitalPinToInterrupt(pinApulse), pulseinterrupt, CHANGE);  // Change Flanks pulse A
+  attachInterrupt(digitalPinToInterrupt(pinBpulse), pulseinterrupt, CHANGE);  // Change Flanks pulse B
+  ledcSetup(pwmChannel0, frecuency, resolution);                              // define the PWM Setup
+  ledcSetup(pwmChannel1, frecuency, resolution);
+  ledcAttachPin(modulePWMPin, pwmChannel0);
+  ledcAttachPin(modulePWMPinNeg, pwmChannel1);
+  Serial.begin(115200);  // open a serial connection to your computer
 }
 
 
@@ -168,26 +199,36 @@ void Motor::begin() {
 //                           MOTOR RUN
 // **************************************************************
 
-void Motor::motorRun(){
-unsigned long currentMillisEncoderAngle = micros();  
-    //Serial.println("1");
-  if (currentMillisEncoderAngle - _previousMillisEncoderAngle >= _INTERVAL_ENCODER_ANGLE) {
+void Motor::motorRun() {
+  unsigned long currentMillisEncoderAngle = millis();  // Actual time Variable Angle
+  if (currentMillisEncoderAngle - previousMillisEncoderAngle >= intervalEncoderAngle) {
+    float delta = (currentMillisEncoderAngle - previousMillisEncoderAngle) / 1000.f;
+    previousMillisEncoderAngle = currentMillisEncoderAngle;
+    //Position
+    Pant = Pact;
+    Pact = (n * 360.0) / R;
 
-    float delta = (currentMillisEncoderAngle - _previousMillisEncoderAngle) / 1000000.f;
-    
-    // encoder lecures
-    _previousMillisEncoderAngle = currentMillisEncoderAngle;
-    _posAngularPrev = _posAngular;
-    _posAngular = (_n * 360.0) / _R;
-    _velocityAngular = (3.14159 / 180.f) * (_posAngular - _posAngularPrev) / delta;
+    double velocity = (3.14159 / 180.f) * (Pact - Pant) / delta;
 
-    // direction of movement
-    if (_duty < 0) { 
-      ledcWrite(_pwmChannel0, 0);
-      ledcWrite(_pwmChannel1, -1 * _duty * 255.f / 100.f);
+    float error = setPoint - velocity;
+
+    duty = (u0 * error + u1 * pastError[0] + u2 * pastError[1] + y0 * pastOutput[0] + y1 * pastOutput[1]);
+    if (duty > 100) duty = 100;
+    Serial.print(duty);
+    Serial.print(" ");
+    pastError[1] = pastError[0];
+    pastError[0] = error;
+    pastOutput[1] = pastOutput[0];
+    pastOutput[0] = duty;
+
+    Serial.println(velocity);
+
+    if (duty < 0) {  //Si es negativo, se debe mandar uno de los PWM a cero y activar el otro
+      ledcWrite(pwmChannel0, 0);
+      ledcWrite(pwmChannel1, -1 * duty * 255.f / 100.f);
     } else {
-      ledcWrite(_pwmChannel1, 0);
-      ledcWrite(_pwmChannel0, _duty * 255.f / 100.f);
+      ledcWrite(pwmChannel1, 0);
+      ledcWrite(pwmChannel0, duty * 255.f / 100.f);
     }
   }
 }
@@ -195,38 +236,30 @@ unsigned long currentMillisEncoderAngle = micros();
 // **************************************************************
 //                      PULSE INTERRUPTION
 // **************************************************************
+int Motor::pinApulse = 32;
+int Motor::pinBpulse = 33;
+volatile byte Motor::actualAB = 0;
+volatile byte Motor::previousAB = 0;
+int Motor::n = 0;
 
 void Motor::pulseinterrupt() {
-       
-        _previousAB = _actualAB;
-        if (digitalRead(_pinApulse))
-            bitSet(_actualAB, 1);
-        else
-            bitClear(_actualAB, 1);
-        if (digitalRead(_pinBpulse))
-            bitSet(_actualAB, 0);
-        else
-            bitClear(_actualAB, 0);
 
-        // direction of movement
-        if (_previousAB == 2 && _actualAB == 0)
-            _n++;
-        if (_previousAB == 0 && _actualAB == 1)
-            _n++;
-        if (_previousAB == 3 && _actualAB == 2)
-            _n++;
-        if (_previousAB == 1 && _actualAB == 3)
-            _n++;
+  previousAB = actualAB;
+  if (digitalRead(pinApulse)) bitSet(actualAB, 1);
+  else bitClear(actualAB, 1);
+  if (digitalRead(pinBpulse)) bitSet(actualAB, 0);
+  else bitClear(actualAB, 0);
 
-        if (_previousAB == 1 && _actualAB == 0)
-            _n--;
-        if (_previousAB == 3 && _actualAB == 1)
-            _n--;
-        if (_previousAB == 0 && _actualAB == 2)
-            _n--;
-        if (_previousAB == 2 && _actualAB == 3)
-            _n--;
+  //direction of movement
+  if (previousAB == 2 && actualAB == 0) n++;
+  if (previousAB == 0 && actualAB == 1) n++;
+  if (previousAB == 3 && actualAB == 2) n++;
+  if (previousAB == 1 && actualAB == 3) n++;
 
+  if (previousAB == 1 && actualAB == 0) n--;
+  if (previousAB == 3 && actualAB == 1) n--;
+  if (previousAB == 0 && actualAB == 2) n--;
+  if (previousAB == 2 && actualAB == 3) n--;
 }
 
 

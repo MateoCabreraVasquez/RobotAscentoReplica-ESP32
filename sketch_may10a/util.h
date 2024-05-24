@@ -78,7 +78,7 @@ class ZeroOrderHolder
 private:
     float _lastValue = 0.0; /**< Last stored value */
     float _lastTime = 0.0; /**< Last time value */
-    float _period = 1000; /**< Sampling period (1 ms by default) */
+    float _period = 2000; /**< Sampling period (1 ms by default) */
 
 public:
 

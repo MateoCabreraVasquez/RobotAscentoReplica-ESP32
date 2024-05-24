@@ -43,7 +43,7 @@ private:
         _pidRighEntries.insert(value);
         std::array<float, 3> u =_pidRighEntries.toArray();
         std::array<float, 2> Y =_pdiRightOutputs.toArray();
-        float y = 15.48 * u[0] - 30.19 * u[1] - 14.72 * u[2] + 1.96 * Y[0] -0.96 * Y[1];
+        float y = 15.99 * u[0] - 6.576 * u[1] - 7.715 * u[2] + 0.9847* Y[0] + 0.01531 * Y[1];
         _pdiRightOutputs.insert(y);
         return y;
     }
@@ -81,11 +81,17 @@ public:
 
         float res = _pidRight(error);
 
+        // Serial.print(res);
+        // Serial.print(", ");
         float resatured1 = _saturator.compute(res, -100, 100);
+        // Serial.print(resatured1);
+        // Serial.print(", ");
 
-        float resZeroOrderHold = _zeroOrderHolderRigth.Compute(resatured1);
 
-        return (long) resZeroOrderHold;
+        // long resZeroOrderHold = _zeroOrderHolderRigth.Compute(resatured1);        
+        //Serial.print(resZeroOrderHold);
+
+        return (long) resatured1;
     }
 
     // LEFT
@@ -101,9 +107,9 @@ public:
 
         float resatured1 = _saturator.compute(res, -100, 100);
 
-        float resZeroOrderHold = _zeroOrderHolderLeft.Compute(resatured1);
+        // float resZeroOrderHold = _zeroOrderHolderLeft.Compute(resatured1);
 
-        return resZeroOrderHold;
+        return resatured1;
     }
     
 };

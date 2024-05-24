@@ -32,28 +32,28 @@ private:
     // imu
     ImuManager _imuManager;
 
-    // wheels
-    Motor motoRigth = Motor(
-        32,   // pinPulseA
-        33,   // pinPulseB
-        2,    // modulePWMPin
-        5,    // modulePWMPinNeg
-        0,    // pwmChannel0
-        1,    // pwmChannel1
-        6538, // R,
-        R     // radioWheel
-    );
+    // // wheels
+    // Motor motoRigth = Motor(
+    //     32,   // pinPulseA
+    //     33,   // pinPulseB
+    //     2,    // modulePWMPin
+    //     5,    // modulePWMPinNeg
+    //     0,    // pwmChannel0
+    //     1,    // pwmChannel1
+    //     6538, // R,
+    //     R     // radioWheel
+    // );
 
-      Motor motorLeft = Motor(
-        25,   // pinPulseA
-        26,   // pinPulseB
-        15,   // modulePWMPin
-        18,   // modulePWMPinNeg
-        2,    // pwmChannel0
-        3,    // pwmChannel1
-        4451, // R,
-        R     // radioWheel
-    );
+    //   Motor motorLeft = Motor(
+    //     25,   // pinPulseA
+    //     26,   // pinPulseB
+    //     15,   // modulePWMPin
+    //     18,   // modulePWMPinNeg
+    //     2,    // pwmChannel0
+    //     3,    // pwmChannel1
+    //     4451, // R,
+    //     R     // radioWheel
+    // );
 
     // differential model
     DifferentialFollowerModel _differentialFollowerModel = DifferentialFollowerModel(
