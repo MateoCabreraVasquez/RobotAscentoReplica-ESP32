@@ -1,7 +1,10 @@
 #include <Arduino.h>
+#include <array>
 
 #ifndef MOTOR_H
 #define MOTOR_H
+
+
 
 
 /**
@@ -15,30 +18,38 @@ class Motor {
   // **************************************************************
 private:
 
+  int N=12000;
+  std::array<float, 12000> u;
+  std::array<float, 12000> V;
+
+  int ind=0;
+
   // class parameters
   static int pinApulse;  //Digital pin, need interrupt for count rising flanks
   static int pinBpulse;
-  float P;                   //Relative Position in grades
-  float R;                   //Resolution of Encoder for a quadrupel precision
+  int modulePWMPin;
+  int modulePWMPinNeg;
+  int pwmChannel0;
+  int pwmChannel1;
+  float P;  //Relative Position in grades
+  float R=6538; //Resolution of Encoder for a quadrupel precision
+  float u0, u1, u2, y0, y1;
 
-  const long intervalEncoderAngle = 50;  //Delay for the Angle Data
+ float velocity=4;
+
+  const long intervalEncoderAngle = 2;  //Delay for the Angle Data
   unsigned long previousMillisEncoderAngle = 0;
 
   static int n;                     //store the pulse
   static volatile byte actualAB;    //Actual Value of AB
   static volatile byte previousAB;  //previous Value of AB
 
-
   float Pact = 0;            //Relative Position in grades
   float Pant = 0;            //Relative Position in grades
   const int resolution = 8;  // set PWM resolution
-  int frecuency = 21000;
-  int pwmChannel0;
-  int pwmChannel1;
-  int modulePWMPin;
-  int modulePWMPinNeg;
+  int frecuency = 1000;
+ 
 
-  float u0 = 0, u1 = 0, u2 = 0, y0 = 0, y1 = 0;
 
   float pastError[2] = { 0, 0 };
   float pastOutput[2] = { 0, 0 };
@@ -46,10 +57,24 @@ private:
 
 
   long int duty = 0;
-  float setPoint = 7;
+  float setPoint = 4;
+  float xk1 = 0;
+  float xk2 = 0;
+  float xk1_prev = 0;
+  float xk2_prev = 0;
 
 
+  float observer(float duty, float angle){
 
+    float xk1_1=xk1;
+    float xk2_1=xk2;
+
+    xk1 = 0.6833*xk1_1+0.0020*xk2_1+0*duty+0.3167*angle;
+    xk2 = -11.3312*xk1_1+0.9847*xk2_1+0.0017*duty+11.3312*angle;
+
+    return 0*xk1_1+1*xk2_1;
+
+  }
   // **************************************************************
   //                             PUBLIC
   // **************************************************************
@@ -70,8 +95,25 @@ public:
      * @param R Gear ratio.
      * @param radioWheel wheel readio.
      */
-  Motor(int pinPulseA, int pinPulseB, int modulePWMPin, int modulePWMPinNeg, int pwmChannel0, int pwmChannel1, float _R, float _u0, float _u1, float _u2, float _y0, float _y1);
+  Motor(int _pinPulseA, int _pinPulseB, int _modulePWMPin, int _modulePWMPinNeg, int _pwmChannel0, int _pwmChannel1, float _R, float _u0, float _u1, float _u2, float _y0, float _y1) {
+    pinApulse = _pinPulseA;
+    pinBpulse = _pinPulseB;
+    modulePWMPin = _modulePWMPin;
+    modulePWMPinNeg = _modulePWMPinNeg;
+    R = _R;
+    pwmChannel0 = _pwmChannel0;
+    pwmChannel1 = _pwmChannel1;
 
+    u0 = _u0;
+    u1 = _u1;
+    u2 = _u2;
+    y0 = _y0;
+    y1 = _y1;
+  }
+
+void setR(float R_){
+  R=R_;
+}
 
   /**
      * @brief Set the velocity.
@@ -91,13 +133,17 @@ public:
      * @brief Get the angular velocity.
      * @return The angular velocity.
      */
-  float getAngularVelocity();
+  float getAngularVelocity(){
+    return velocity;
+  }
 
   /**
      * @brief Get the angle position.
      * @return The angle position.
      */
-  float getAnglePos();
+  float getAnglePos(){
+    return Pact;
+  }
 
   /**
      * @brief Get the lineal position.
@@ -133,21 +179,7 @@ public:
 
 
 
-Motor::Motor(int _pinPulseA, int _pinPulseB, int _modulePWMPin, int _modulePWMPinNeg, int _pwmChannel0, int _pwmChannel1, float _R, float _u0, float _u1, float _u2, float _y0, float _y1) {
-  pinApulse = _pinPulseA;
-  pinBpulse = _pinPulseB;
-  modulePWMPin = _modulePWMPin;
-  modulePWMPinNeg = _modulePWMPinNeg;
-  R = _R;
-  pwmChannel0 = _pwmChannel0;
-  pwmChannel1 = _pwmChannel1;
 
-  u0 = _u0;
-  u1 = _u1;
-  u2 = _u2;
-  y0 = _y0;
-  y1 = _y1;
-}
 
 // **************************************************************
 //                     MANGER MOTOR  FUNCTIONS
@@ -162,13 +194,8 @@ float Motor::getLinealVelocity() {
   return 0.1;
 }
 
-float Motor::getAngularVelocity() {
-  return 0.1;
-}
 
-float Motor::getAnglePos() {
-  return 0.1;
-}
+
 
 float Motor::getLinealPos() {
   return 0.1;
@@ -194,7 +221,6 @@ void Motor::begin() {
   Serial.begin(115200);  // open a serial connection to your computer
 }
 
-
 // **************************************************************
 //                           MOTOR RUN
 // **************************************************************
@@ -202,26 +228,46 @@ void Motor::begin() {
 void Motor::motorRun() {
   unsigned long currentMillisEncoderAngle = millis();  // Actual time Variable Angle
   if (currentMillisEncoderAngle - previousMillisEncoderAngle >= intervalEncoderAngle) {
+  
+    if(ind % 3000==0){
+      setPoint=setPoint+1;
+    }
     float delta = (currentMillisEncoderAngle - previousMillisEncoderAngle) / 1000.f;
     previousMillisEncoderAngle = currentMillisEncoderAngle;
     //Position
     Pant = Pact;
-    Pact = (n * 360.0) / R;
+    Pact = (n *2*3.1416)/ R;
 
-    double velocity = (3.14159 / 180.f) * (Pact - Pant) / delta;
-
+    
+    //velocity = (3.14159 / 180.f) * (Pact - Pant) / delta;
+    
     float error = setPoint - velocity;
 
     duty = (u0 * error + u1 * pastError[0] + u2 * pastError[1] + y0 * pastOutput[0] + y1 * pastOutput[1]);
+    
+    velocity=observer(duty, Pact);
+    u[ind]=velocity;
+    V[ind]=setPoint;
+    ind=ind+1;
+
+
     if (duty > 100) duty = 100;
-    Serial.print(duty);
-    Serial.print(" ");
+    if(ind==N-1){
+      duty=0;
+      for(int i=0; i<2000;i++){
+        Serial.print(u[i]);
+        Serial.print("  ");
+        Serial.println(V[i]);
+
+      }
+    }
+
+
     pastError[1] = pastError[0];
     pastError[0] = error;
     pastOutput[1] = pastOutput[0];
     pastOutput[0] = duty;
 
-    Serial.println(velocity);
 
     if (duty < 0) {  //Si es negativo, se debe mandar uno de los PWM a cero y activar el otro
       ledcWrite(pwmChannel0, 0);
@@ -261,6 +307,8 @@ void Motor::pulseinterrupt() {
   if (previousAB == 0 && actualAB == 2) n--;
   if (previousAB == 2 && actualAB == 3) n--;
 }
+
+
 
 
 #endif

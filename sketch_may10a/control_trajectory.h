@@ -12,10 +12,10 @@ class ControlTrajectory{
         // ***************** PARAMETERS *****************
 
         // CONST
-        const float R = 0.0; /**< Wheel radius */
-        const float L = 0.0; /**< Distance between wheels */
-        const float _wMaxRigtht = 11.0; /**< Maximum right wheel velocity */
-        const float _wMaxLeft = 11.0; /**< Maximum left wheel velocity */
+        const float R; /**< Wheel radius */
+        const float L; /**< Distance between wheels */
+        const float _wMaxRigtht; /**< Maximum right wheel velocity */
+        const float _wMaxLeft; /**< Maximum left wheel velocity */
 
         // UTIL
         Saturator saturator; /**< Saturator object for saturation */
@@ -126,7 +126,7 @@ class ControlTrajectory{
          * @param wMaxRigtht Maximum right wheel velocity.
          * @param wMaxLeft Maximum left wheel velocity.
          */
-        ControlTrajectory(float R, float L, float wMaxRigtht, float wMaxLeft) : R(R), L(L), _wMaxRigtht(wMaxRigtht), _wMaxLeft(wMaxLeft){}
+        ControlTrajectory(float R_, float L_, float wMaxRigtht, float wMaxLeft) : R(R_), L(L_), _wMaxRigtht(wMaxRigtht), _wMaxLeft(wMaxLeft){}
 
 
         /**
