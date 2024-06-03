@@ -18,12 +18,6 @@ class Motor {
   // **************************************************************
 private:
 
-  int N=12000;
-  std::array<float, 12000> u;
-  std::array<float, 12000> V;
-
-  int ind=0;
-
   // class parameters
   static int pinApulse;  //Digital pin, need interrupt for count rising flanks
   static int pinBpulse;
@@ -60,19 +54,19 @@ private:
   float setPoint = 4;
   float xk1 = 0;
   float xk2 = 0;
-  float xk1_prev = 0;
-  float xk2_prev = 0;
+  float xk3 = 0;
 
 
   float observer(float duty, float angle){
 
     float xk1_1=xk1;
     float xk2_1=xk2;
+    float xk3_1=xk3;
 
-    xk1 = 0.6833*xk1_1+0.0020*xk2_1+0*duty+0.3167*angle;
-    xk2 = -11.3312*xk1_1+0.9847*xk2_1+0.0017*duty+11.3312*angle;
-
-    return 0*xk1_1+1*xk2_1;
+    xk1 =   0.535340413091986*xk1_1   +0.002000000000000*xk2_1        +0*xk3_1      +0.0000017073169*duty     +0.464659586908014*angle;
+    xk2 = -34.785964994881375*xk1_1   +0.984659586908582*xk2_1   +1.0000*xk3_1    +0.001689833822740*duty    +34.785964994881375*angle;
+    xk3 =  -2.039999999992823*xk1_1                    +0*xk2_1  +1.0000*xk3_1                     +0*duty    +2.039999999992823*angle;
+    return 0*xk1_1+1*xk2_1+0*xk3_1;
 
   }
   // **************************************************************
@@ -229,9 +223,6 @@ void Motor::motorRun() {
   unsigned long currentMillisEncoderAngle = millis();  // Actual time Variable Angle
   if (currentMillisEncoderAngle - previousMillisEncoderAngle >= intervalEncoderAngle) {
   
-    if(ind % 3000==0){
-      setPoint=setPoint+1;
-    }
     float delta = (currentMillisEncoderAngle - previousMillisEncoderAngle) / 1000.f;
     previousMillisEncoderAngle = currentMillisEncoderAngle;
     //Position
@@ -246,22 +237,8 @@ void Motor::motorRun() {
     duty = (u0 * error + u1 * pastError[0] + u2 * pastError[1] + y0 * pastOutput[0] + y1 * pastOutput[1]);
     
     velocity=observer(duty, Pact);
-    u[ind]=velocity;
-    V[ind]=setPoint;
-    ind=ind+1;
-
-
+ 
     if (duty > 100) duty = 100;
-    if(ind==N-1){
-      duty=0;
-      for(int i=0; i<2000;i++){
-        Serial.print(u[i]);
-        Serial.print("  ");
-        Serial.println(V[i]);
-
-      }
-    }
-
 
     pastError[1] = pastError[0];
     pastError[0] = error;

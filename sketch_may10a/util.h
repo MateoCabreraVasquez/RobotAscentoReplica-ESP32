@@ -198,4 +198,50 @@ class ComplementaryFilter3{
 };
 
 
+
+class Debug {
+
+    private:
+    const int N = 3000; 
+    float a1[3000];
+    float a2[3000];
+    float a3[3000];
+    float a4[3000];
+    int ind = 0;
+    unsigned long _previousMillisEncoderAngle = 0;
+    unsigned long _intervalEncoderAngle = 10;
+
+
+    public:
+
+    void runDebug(float x1,float x2, float x3, float x4){
+        unsigned long _currentMillisEncoderAngle = millis();  // Actual time Variable Angle
+        if (_currentMillisEncoderAngle - _previousMillisEncoderAngle >= _intervalEncoderAngle) {
+            _previousMillisEncoderAngle = _currentMillisEncoderAngle;
+
+        a1[ind] = x1;
+        a2[ind] = x2;
+        a3[ind] = x3;
+        a4[ind] = x4;
+
+        if (ind == N - 1) {
+            for (int i = 0; i < N; i++) {
+            Serial.print(a1[i], 4);
+            Serial.print(" ");
+            Serial.print(a2[i], 4);
+            Serial.print(" ");
+            Serial.print(a3[i], 4);
+            Serial.print(" ");
+            Serial.print(a4[i], 4);
+            Serial.println();
+        }
+        ind = 0;
+      }
+    ind++;
+
+    }
+    }
+
+};
+
 #endif

@@ -1,14 +1,16 @@
 #include "util.h"
 
+
 #ifndef CONTROL_VELOCITY_H
 #define CONTROL_VELOCITY_H
+
 
 /**
  * @brief A class for controlling velocity.
  */
 class ControlVelocity{
 private:
-
+    
     // ***************** PARAMETERS *****************
 
     // UTIL

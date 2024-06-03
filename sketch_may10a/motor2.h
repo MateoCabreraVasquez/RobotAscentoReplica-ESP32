@@ -15,6 +15,8 @@ class Motor2 {
   // **************************************************************
 private:
 
+  int ind=0;
+
   // class parameters
   static int _pinApulse;  //Digital pin, need interrupt for count rising flanks
   static int _pinBpulse;
@@ -26,7 +28,7 @@ private:
   float _u0, _u1, _u2, _y0, _y1;
   // float _P;  //Relative Position in grades
 
-  const long _intervalEncoderAngle = 50;  //Delay for the Angle Data
+  const long _intervalEncoderAngle = 2;  //Delay for the Angle Data
   unsigned long _previousMillisEncoderAngle = 0;
 
   static int _n;                     //store the pulse
@@ -45,11 +47,30 @@ private:
   float _pastOutput[2] = { 0, 0 };
 
 
+  int N=1000;
+  float data[1000];
+  float data2[1000];
+
 
   long int _duty = 0;
   float _setPoint = 7;
 
+  float _xk1 = 0;
+  float _xk2 = 0;
+  float _xk3 = 0;
 
+  float observer(float duty, float angle){
+
+    float _xk1_1=_xk1;
+    float _xk2_1=_xk2;
+    float _xk3_1=_xk3;
+
+    _xk1 =   0.662452316388307*_xk1_1   +0.002000000000000*_xk2_1        +0*_xk3_1      +0.000002547422*duty     +0.337547683611694*angle;
+    _xk2 = -18.054154356557294*_xk1_1   +0.983547683612005*_xk2_1   +1.0000*_xk3_1    +0.002519443258367*duty    +18.054154356557294*angle;
+    _xk3 =  -0.815011249997974*_xk1_1                    +0*_xk2_1  +1.0000*_xk3_1                     +0*duty    +0.815011249997974*angle;
+    return 0*_xk1_1+1*_xk2_1+0*_xk3_1;
+
+  }
 
   // **************************************************************
   //                             PUBLIC
@@ -208,14 +229,38 @@ void Motor2::motorRun() {
     _previousMillisEncoderAngle = _currentMillisEncoderAngle;
     //Position
     _Pant = _Pact;
-    _Pact = (_n * 360.0) / _R;
+    _Pact = (_n * 2*3.1416) / _R;
 
-     _velocity = (3.14159 / 180.f) * (_Pact - _Pant) / _delta;
+    // _velocity=(3.14159 / 180.f) * (_Pact - _Pant) / _delta;
+
 
     float _error = _setPoint - _velocity;
 
     _duty = (_u0 * _error + _u1 * _pastError[0] + _u2 * _pastError[1] + _y0 * _pastOutput[0] + _y1 * _pastOutput[1]);
+    
+
     if (_duty > 100) _duty = 100;
+    else if(_duty<-100)_duty = -100;
+
+     _velocity=observer(_duty, _Pact);
+
+//  data[ind]=_velocity;
+//   data2[ind]=_duty;
+
+//     if(ind<N)
+//       ind ++;
+
+//     if(ind==N){
+//       for(int i=0; i<N;i++){
+//         Serial.print(data[i]);
+//         Serial.print("   ");
+//         Serial.println(data2[i]);
+
+//       }
+//     }
+
+    
+
 
     _pastError[1] = _pastError[0];
     _pastError[0] = _error;
