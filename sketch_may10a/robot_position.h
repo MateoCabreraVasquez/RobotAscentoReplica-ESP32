@@ -6,7 +6,7 @@
 
 
 int _previousMillisEncoderAngle = 0;
-int _intervalEncoderAngle = 10;
+int _intervalEncoderAngle = 2;
 
 class RobotPosition {
 
@@ -23,7 +23,7 @@ private:
 public:
 
 
-  RobotPosition(float Li, float Ri) {
+  RobotPosition( float Ri,float Li) {
     L = Li;
     R = Ri;
   }
@@ -40,8 +40,8 @@ public:
     return phiPrev;
   }
 
-  float thetaRPrev = 0;
-  float thetaLPrev = 0;
+  float thetaRPrev_ = 0;
+  float thetaLPrev_ = 0;
   float prevTime = 0;
 
 
@@ -68,20 +68,27 @@ public:
   }
 
 
-  void updatePosition(float thetaR, float thetaL) {
+
+
+  void updatePosition(float thetaR, float thetaL, float phi_re) {
 
     unsigned long _currentMillisEncoderAngle = millis();  // Actual time Variable Angle
     if (_currentMillisEncoderAngle - _previousMillisEncoderAngle >= _intervalEncoderAngle) {
       _previousMillisEncoderAngle = _currentMillisEncoderAngle;
 
       // Distance Calculation
-      float Dr = R * (thetaR - thetaRPrev);
-      float Dl = R * (thetaL - thetaLPrev);
+      float Dr = R * (thetaR - thetaRPrev_);
+      float Dl = R * (thetaL - thetaLPrev_);
       float Dc = (Dr + Dl) / 2.0f;
 
       // Position Update
-      float y = yPrev + Dc * sin(phiPrev);
-      float x = xPrev + Dc * cos(phiPrev);
+      float yComp = Dc * sin(phiPrev);
+      float xComp=  Dc * cos(phiPrev);
+
+      // debug.runDebug(thetaR, thetaL,yPrev,xPrev );
+
+      float y = yPrev +yComp;
+      float x = xPrev +xComp;
 
       // Orientation Update
       float phi = phiPrev + ((Dr - Dl) / L);  // Apply deltaTime
@@ -89,18 +96,21 @@ public:
 
 
 
+
+
       // Normalize the angle to be within [-pi, pi)
-      if (phi < -3.1416) {
+      if (phi < -2*3.1416) {
         phi += 2 * 3.1416;
-      } else if (phi >= 3.1416) {
+      } else if (phi >= 2*3.1416) {
         phi -= 2 * M_PI;
       }
 
       phiPrev = phi;
+      // debug.runDebug(phiPrev, thetaRPrev_,phiPrev , phi_re);
 
       // Update previous values
-      thetaRPrev = thetaR;
-      thetaLPrev = thetaL;
+      thetaRPrev_ = thetaR;
+      thetaLPrev_ = thetaL;
       yPrev = y;
       xPrev = x;
     }

@@ -60,9 +60,9 @@ private:
     float deltaY = yTarget - yReal;
     float ang = atan2(deltaY, deltaX);
     if (ang < 0)
-        ang= 3.1416 + ang;
-    if (ang > 3.1416)
-        ang= ang -3.1416;
+        ang= 2*3.1416 + ang;
+    if (ang > 2*3.1416)
+        ang= ang -2*3.1416;
     return ang;
   }
 
@@ -186,7 +186,7 @@ public:
     // saturate the linear velocity
     float vSatured = _saturateLinearVelocity(wControl, vControl);
 
-    if(Dfist<0.4){
+    if(Dfist<0.05){
      _wRight = 0;
      _wLeft = 0;
 

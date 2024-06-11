@@ -1,6 +1,8 @@
 #include <mat.h>
 #include "Arduino.h"
 #include "MPU9250.h"
+#include "util.h"
+#include <array>
 
 #ifndef IMU_MANAGER_H
 #define IMU_MANAGER_H
@@ -12,6 +14,8 @@ class ImuManager {
 
 private:
 
+  QueueBuffer<float,100> compassData;
+
   bool _isWorking = false;
   MPU9250 _mpu; /**< MPU9250 object for IMU communication */
 
@@ -19,6 +23,9 @@ private:
   float _pitch = 0.0; /**< Pitch angle */
   float _roll = 0.0;  /**< Roll angle */
   float _yaw = 0.0;   /**< Yaw angle */
+
+  float _magX = 0.0; /**< Magnetometer X */
+  float _magY = 0.0; /**< Magnetometer Y */
 
   float _compassHeading = 0.0; /**< Compass heading */
 
@@ -31,14 +38,14 @@ private:
   const float _rollOffset = 0.0;  /**< Roll offset */
   const float _yawOffset = 0.0;   /**< Yaw offset */
 
-  const float _compassHeadingOffset = 0.0; /**< Compass offset */
+  float _compassHeadingOffset = 0.0; /**< Compass offset */
 
   const float _linAccelXOffset = 0.0; /**< Linear acceleration X offset */
   const float _linAccelYOffset = 0.0; /**< Linear acceleration Y offset */
   const float _linAccelZOffset = 0.0; /**< Linear acceleration Z offset */
 
   const float _accelBounds = 0.5 / 9.8; /**< Acceleration bounds 0.4ms */
-  const float _angleBounds = 0.1;       /**< Angle bounds 4 degrees*/
+  const float _angleBounds = 0.01;       /**< Angle bounds 4 degrees*/
 
 
   // linear velocity and position
@@ -72,6 +79,18 @@ public:
         delay(5000);
       }
     }
+
+
+    // get compast offest
+   _compassHeadingOffset=0;
+    for (int i = 0; i < 100; i++) {
+      _mpu.update();
+      _compassHeadingOffset += atan2(_mpu.getMagY(), _mpu.getMagX()) * 180 / PI;
+      delay(10);
+    }
+
+    _compassHeadingOffset /= 100.0f;
+
 
     _mpu.setFilterIterations(20);
   }
@@ -145,7 +164,9 @@ public:
 
         updateLinearVelAndPos();
 
-        prev_ms = millis();
+        _magX = _mpu.getMagX();
+        _magY = _mpu.getMagY();
+
         _isWorking = false;
       }
     }
@@ -176,11 +197,13 @@ public:
      * @brief Calibrates the MPU9250 sensor.
      */
   void calibrate() {
-    Serial.println("Calib. will start in 5sec.");
-    Serial.println("Leave the device on a flat plane.");
     _mpu.verbose(true);
-    delay(5000);
+       Serial.println("ACEL.");
+     delay(5000);
     _mpu.calibrateAccelGyro();
+    Serial.println("MAG.");
+    delay(5000);
+    _mpu.calibrateMag();
     _mpu.verbose(false);
   }
 
@@ -232,6 +255,29 @@ public:
     return this->_yaw + this->_yawOffset;
   }
 
+
+float getCompassAngle(){
+
+  float rowValue = atan2(_magY, _magX)*180/3.1416;
+  compassData.insert(rowValue);
+  std::array<float,100> data =compassData.toArray();
+
+  // find average
+  float sum = 0;
+  for(int i=0;i<100;i++){
+    sum+=data[i];
+  }
+  
+  float prom=sum/100;
+
+  float angle= (prom-_compassHeadingOffset)*90/20;
+  if (angle<0);
+      angle=angle+360;
+    
+
+  return (PI*angle)/180;
+  }
+  
 
   // ************* LINEAR ACELERATION************* //
 

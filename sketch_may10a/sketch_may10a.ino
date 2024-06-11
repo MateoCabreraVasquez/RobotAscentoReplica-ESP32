@@ -1,106 +1,41 @@
-// //***************************************************** PWM Encoder + Puente H *****************************************************//
-// int pinApulse = 25;  //Digital pin, need interrupt for count rising flanks
-// int pinBpulse = 26;
-
-// const long intervalEncoderAngle = 50;  //Delay for the Angle Data
-// unsigned long previousMillisEncoderAngle = 0;
-
-// volatile int n = 0;            //store the pulse
-// volatile byte actualAB = 0;    //Actual Value of AB
-// volatile byte previousAB = 0;  //previous Value of AB
-
-// double P = 0;              //Relative Position in grades
-// double R = 4451;           //Resolution of Encoder for a quadrupel precision
-// double Pact = 0;           //Relative Position in grades
-// double Pant = 0;           //Relative Position in grades
-// const int resolution = 8;  // set PWM resolution
-// int frecuency = 21000;
-// int pwmChannel2 = 2;
-// int pwmChannel3 = 3;
-// int modulePWMPinIZ = 15;
-// int modulePWMPinNegIZ = 18;
-
-// float pastError[2] = { 0, 0 };
-// float pastOutput[2] = { 0, 0 };
-// void setup() {
-//   //Encoder
-//   pinMode(pinApulse, INPUT);
-//   pinMode(pinBpulse, INPUT);
-//   attachInterrupt(digitalPinToInterrupt(pinApulse), pulseinterrupt, CHANGE);  // Change Flanks pulse A
-//   attachInterrupt(digitalPinToInterrupt(pinBpulse), pulseinterrupt, CHANGE);  // Change Flanks pulse B
-//   ledcSetup(pwmChannel2, frecuency, resolution);                               // define the PWM Setup
-//   ledcSetup(pwmChannel3, frecuency, resolution);
-//   ledcAttachPin(modulePWMPinIZ, pwmChannel2);
-//   ledcAttachPin(modulePWMPinNegIZ, pwmChannel3);
-//   Serial.begin(115200);  // open a serial connection to your computer
-// }
-// long int duty = 0;
-// float setPoint = 5;
-// void loop() {
-//   unsigned long currentMillisEncoderAngle = millis();  // Actual time Variable Angle
-//   if (currentMillisEncoderAngle - previousMillisEncoderAngle >= intervalEncoderAngle) {
-//     float delta = (currentMillisEncoderAngle - previousMillisEncoderAngle) / 1000.f;
-//     previousMillisEncoderAngle = currentMillisEncoderAngle;
-//     //Position
-//     Pant = Pact;
-//     Pact = (n * 360.0) / R;
-//     double velocity = (3.14159 / 180.f) * (Pact - Pant) / delta;
-//     float error = setPoint - velocity;
-//     duty = (13.28 * error - 6.997 * pastError[0] - 4.867 * pastError[1] + 0.9404 * pastOutput[0] + 0.05964 * pastOutput[1]);
-//     if (duty > 100) duty = 100;
-//     Serial.print(duty);
-//     Serial.print(" ");
-//     pastError[1] = pastError[0];
-//     pastError[0] = error;
-//     pastOutput[1] = pastOutput[0];
-//     pastOutput[0] = duty;
-
-//     Serial.println(velocity);
-//     if (duty < 0) {  //Si es negativo, se debe mandar uno de los PWM a cero y activar el otro
-//       ledcWrite(pwmChannel2, 0);
-//       ledcWrite(pwmChannel3, -1 * duty * 255.f / 100.f);
-//     } else {
-//       ledcWrite(pwmChannel3, 0);
-//       ledcWrite(pwmChannel2, duty * 255.f / 100.f);
-//     }
-//   }
-// }
-
-// //Encoder
-// void pulseinterrupt() {
-//   previousAB = actualAB;
-//   if (digitalRead(pinApulse)) bitSet(actualAB, 1);
-//   else bitClear(actualAB, 1);
-//   if (digitalRead(pinBpulse)) bitSet(actualAB, 0);
-//   else bitClear(actualAB, 0);
-
-//   //direction of movement
-//   if (previousAB == 2 && actualAB == 0) n++;
-//   if (previousAB == 0 && actualAB == 1) n++;
-//   if (previousAB == 3 && actualAB == 2) n++;
-//   if (previousAB == 1 && actualAB == 3) n++;
-
-//   if (previousAB == 1 && actualAB == 0) n--;
-//   if (previousAB == 3 && actualAB == 1) n--;
-//   if (previousAB == 0 && actualAB == 2) n--;
-//   if (previousAB == 2 && actualAB == 3) n--;
-// }
-
 #include <Arduino.h>
 #include "motor.h"
 #include "motor2.h"
 #include "robot_position.h"
 #include "control_trajectory.h"
 #include "util.h"
+#include "control_equilibrium.h"
+#include "servo.h"
+#include "imu_manager.h"
 
-
-const float R = 0.08;
+Debug debug;
+ControlEquilibrium controlEquilibrium;
+const float R = 0.075;
 const float L = 0.24;
 const float wMaxR = 11.0;
 const float wMaxL = 11.0;
+// Servos
+const int PWMPinAzul = 27;
+const int PWMPinRojo = 12;
+const int freq = 488;
+const int ChannelServoAzul = 4;
+const int ChannelServoRojo = 5;
+const int resolution = 8;
 
-Debug debug;
+const float xTarget = 1.5;
+const float yTarget = 0;
 
+volatile bool flagM = 0;
+
+// interruptions
+hw_timer_t *timer = NULL;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+
+
+servo servoAzul(90, ChannelServoAzul);
+servo servoRojo(90, ChannelServoRojo);
+
+ImuManager imuManager;
 
 RobotPosition robotPosition = RobotPosition(R, L);
 ControlTrajectory controlTrajectory = ControlTrajectory(R, L, wMaxR, wMaxL);
@@ -143,72 +78,196 @@ Motor2 motoLeft = Motor2(
   0.9404,  // y0
   0.05964  // y1
 );
-void setup() {
-  Serial.begin(115200);
-  motoRigth.begin();
-  motoRigth.setVelocity(4);
-  // motoLeft.begin();
-  // motoLeft.setVelocity(4);
+SemaphoreHandle_t xSemaphore;
+
+
+void readIMUTask(void *parameter) {
+  while (true) {
+
+    if (xSemaphoreTake(xSemaphore, portMAX_DELAY) == pdTRUE) {
+      imuManager.update();
+      xSemaphoreGive(xSemaphore);
+    }
+    vTaskDelay(10 / portTICK_PERIOD_MS);  // Delay for 10ms
+  }
 }
 
-const float xTarget = 10;
-const float yTarget = 4;
+// void IRAM_ATTR onTimer() {
+//   // Code to execute in the interrupt
+//   portENTER_CRITICAL_ISR(&timerMux);
+//   motoRigth.motorRun();
+//   portEXIT_CRITICAL_ISR(&timerMux);
+// }
 
-// int ind = 0;
-// unsigned int _previousMillisEncoderAngle = 0;
-// unsigned int _intervalEncoderAngle = 10;
 
-int step=0;
-int previousMillisEncoderAngle=0;
-float refer=0;
+
+
+
+
+//******************************************************************
+//                             SETUP
+//******************************************************************
+
+void setup() {
+  _setupMotors();
+  _setupServos();
+  _setupImu();
+
+  // Create semaphore
+  xSemaphore = xSemaphoreCreateMutex();
+  if (xSemaphore == NULL) {
+    Serial.println("Failed to create semaphore");
+    while (1) {
+      delay(10);
+    }
+  }
+
+  // Create a task to run on core 0
+  xTaskCreatePinnedToCore(
+    readIMUTask,    // Function to be called
+    "ReadIMUTask",  // Name of the task
+    10000,          // Stack size (bytes)
+    NULL,           // Parameter to pass
+    1,              // Task priority
+    NULL,           // Task handle
+    0);
+}
+
+
+// ****************** SETUP FUNCTIONS ******************
+
+// Setup Servos
+void _setupServos() {
+  ledcSetup(ChannelServoAzul, freq, resolution);
+  ledcAttachPin(PWMPinAzul, ChannelServoAzul);
+  ledcSetup(ChannelServoRojo, freq, resolution);
+  ledcAttachPin(PWMPinRojo, ChannelServoRojo);
+  servoRojo.setAngle(85, 'r');
+  servoAzul.setAngle(90, 'b');
+}
+
+// Setup Motors
+void _setupMotors() {
+  motoRigth.begin();
+  motoLeft.begin();
+  motoRigth.setVelocity(4);
+  motoLeft.setVelocity(4);
+}
+
+// Setup IMU
+void _setupImu() {
+  imuManager.begin();
+  // imuManager.calibrate();
+}
+
+// Setup Serial
+void _setupSerial() {
+  Serial.begin(115200);
+}
+
+// interruption
+// void _interruptionSetup(){
+//   timer = timerBegin(0, 80, true); // timer 0, prescaler 80, count up
+//   timerAttachInterrupt(timer, &onTimer, true);
+//   timerAlarmWrite(timer, 2000, true);
+//   timerAlarmEnable(timer);
+// }
+
+
+
+float w = 0;
+unsigned long interval = 10;
+unsigned long prevTime = 0;
+
+
 
 void loop() {
 
-  unsigned long currentMillisEncoderAngle = millis();  // Actual time Variable Angle
-  if (currentMillisEncoderAngle - previousMillisEncoderAngle >= 2) {
-        step =step +1;
-        previousMillisEncoderAngle=currentMillisEncoderAngle;
-  }
-  
-
-  if(step%20==0){
-      motoRigth.setVelocity(3);
-      refer=3;
-  }
-  else if(step%10==0){
-      motoRigth.setVelocity(8);
-      refer=8;
+  if (xSemaphoreTake(xSemaphore, portMAX_DELAY) == pdTRUE) {
+    xSemaphoreGive(xSemaphore);
   }
 
-  // run motors
+
+
+  motoLeft.motorRun();
   motoRigth.motorRun();
+
+
+  unsigned long currentTime = millis();  // Actual time Variable Angle
+  if (currentTime - prevTime > interval) {
+    float vel = controlEquilibrium.run(imuManager.getPitch(), -1.0f);
+    motoRigth.setVelocity(vel);
+    motoLeft.setVelocity(vel);
+    prevTime = currentTime;
+  }
+
+
+
+
+
+
+  //  debug.runDebug(vel,vel,imuManager.getPitch(),imuManager.getPitch());
+
+
+  // debug.runDebug(imuManager.getPitch(),motoLeft.getAngularVelocity(),motoRigth.getAngularVelocity(),4);
+
+
+  // if(millis() < 8000){
+  //   motoRigth.setVelocity(4);
+  // }
+  // else if(millis() > 8000){
+  //   motoRigth.setVelocity(-4);
+  // }
+  // else{
+  //   motoRigth.setVelocity(0);
+  // }
+
+
+  // // // unsigned int current = micros();
+  // imuManager.update();
+  // // //   float imuAngle = imuManager.getCompassAngle();
+
+
+  // Serial.print(imuManager.getRoll());
+  // Serial.print(", ");
+  // Serial.println(imuManager.getPitch());
+
+
+
+
+  // servoRojo.setAngle(80, 'r');
+  // servoAzul.setAngle(90, 'b');
+
+
+
+
+
+  // motoRigth.motorRun();
   // motoLeft.motorRun();
 
-  // get positions
-  float velR = motoRigth.getAngularVelocity();
-  float velL = motoLeft.getAngularVelocity();
 
-  float posAngR = motoRigth.getAnglePos();
-  float posAngL = motoLeft.getAnglePos();
+  // // get positions
+  // float velR = motoRigth.getAngularVelocity();
+  // float velL = motoLeft.getAngularVelocity();
 
-debug.runDebug(velR,  refer,  posAngR, refer);
+  // float posAngR = motoRigth.getAnglePos();
+  // float posAngL = motoLeft.getAnglePos();
 
-
-
-  // robotPosition.updatePosition(posAngR, posAngL);
+  // robotPosition.updatePosition(posAngR, posAngL,4.4);
   // float posRealY = robotPosition.getY();
   // float posRealX = robotPosition.getX();
   // float phiReal = robotPosition.getPhi();
 
-  // // debug.runDebug(posRealX, posRealY, posRealY, posRealY);
+  // // phiReal=0.1*phiReal+0.9*imuAngle;
+  // // // debug.runDebug(posRealX, posRealY, posRealY, posRealY);
 
   // controlTrajectory.update(xTarget, yTarget, posRealX, posRealY, phiReal);
   // float wRigth = controlTrajectory.getWRigth();
   // float wLeft = controlTrajectory.getWLeft();
 
 
-  // motoRigth.setVelocity(wRigth);
-  // motoLeft.setVelocity(wLeft);
+  // motoRigth.setVelocity(4);
+  // motoLeft.setVelocity(4);
 
   // unsigned long _currentMillisEncoderAngle = millis();  // Actual time Variable Angle
   // if (_currentMillisEncoderAngle - _previousMillisEncoderAngle >= _intervalEncoderAngle) {

@@ -231,7 +231,7 @@ void Motor2::motorRun() {
     _Pant = _Pact;
     _Pact = (_n * 2*3.1416) / _R;
 
-    // _velocity=(3.14159 / 180.f) * (_Pact - _Pant) / _delta;
+    _velocity=(3.14159 / 180.f) * (_Pact - _Pant) / _delta;
 
 
     float _error = _setPoint - _velocity;
@@ -242,7 +242,7 @@ void Motor2::motorRun() {
     if (_duty > 100) _duty = 100;
     else if(_duty<-100)_duty = -100;
 
-     _velocity=observer(_duty, _Pact);
+    //  _velocity=observer(_duty, _Pact);
 
 //  data[ind]=_velocity;
 //   data2[ind]=_duty;

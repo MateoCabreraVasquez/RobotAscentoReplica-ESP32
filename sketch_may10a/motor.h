@@ -230,15 +230,16 @@ void Motor::motorRun() {
     Pact = (n *2*3.1416)/ R;
 
     
-    //velocity = (3.14159 / 180.f) * (Pact - Pant) / delta;
+    velocity = (3.14159 / 180.f) * (Pact - Pant) / delta;
     
     float error = setPoint - velocity;
 
     duty = (u0 * error + u1 * pastError[0] + u2 * pastError[1] + y0 * pastOutput[0] + y1 * pastOutput[1]);
     
-    velocity=observer(duty, Pact);
+    // velocity=observer(duty, Pact);
  
-    if (duty > 100) duty = 100;
+  if (duty > 100) duty = 100;
+    else if(duty<-100)duty = -100;
 
     pastError[1] = pastError[0];
     pastError[0] = error;

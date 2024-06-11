@@ -40,7 +40,7 @@ int mapDutyCycleAzul(){
 }
 
 int mapDutyCycleRojo(){
-  int duty = map(angle,0,180,21,85);  //servoRojo
+  int duty = map(angle,0,180,21,85);  //servoRojo //95
   return map(duty, 0, 100, 0, 255);
 }
 
